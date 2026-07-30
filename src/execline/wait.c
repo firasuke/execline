@@ -15,10 +15,6 @@
 #include <execline/config.h>
 #include <execline/execline.h>
 
-#ifdef EXECLINE_PEDANTIC_POSIX
-#include <locale.h>
-#endif
-
 #define USAGE "wait [ -I | -i ] [ -a | -o ] [ -r | -t timeout ] { pids... } [ prog... ]"
 #define dieusage() strerr_dieusage(100, USAGE)
 
@@ -157,51 +153,48 @@ static int wait_with_timeout (pid_t *pids, unsigned int n, pid_t *returned, ac_f
 
 enum wait_golb_e
 {
-  GOLB_INSIST = 0x01,
-  GOLB_JUSTONE = 0x02,
-  GOLB_REAP = 0x04,
+  WAIT_GOLB_INSIST = 0x01,
+  WAIT_GOLB_JUSTONE = 0x02,
+  WAIT_GOLB_REAP = 0x04,
 } ;
 
 enum wait_gola_e
 {
-  GOLA_TIMEOUT,
-  GOLA_N
+  WAIT_GOLA_TIMEOUT,
+  WAIT_GOLA_N
 } ;
 
 int main (int argc, char const **argv)
 {
   static gol_bool const rgolb[] =
   {
-    { .so = 'I', .lo = "no-insist", .clear = GOLB_INSIST, .set = 0 },
-    { .so = 'i', .lo = "insist", .clear = 0, .set = GOLB_INSIST },
-    { .so = 'a', .lo = "all", .clear = GOLB_JUSTONE, .set = 0 },
-    { .so = 'o', .lo = "one", .clear = 0, .set = GOLB_JUSTONE },
-    { .so = 'r', .lo = "reap", .clear = 0, .set = GOLB_REAP },
+    { .so = 'I', .lo = "no-insist", .clear = WAIT_GOLB_INSIST, .set = 0 },
+    { .so = 'i', .lo = "insist", .clear = 0, .set = WAIT_GOLB_INSIST },
+    { .so = 'a', .lo = "all", .clear = WAIT_GOLB_JUSTONE, .set = 0 },
+    { .so = 'o', .lo = "one", .clear = 0, .set = WAIT_GOLB_JUSTONE },
+    { .so = 'r', .lo = "reap", .clear = 0, .set = WAIT_GOLB_REAP },
   } ;
   static gol_arg const rgola[] =
   {
-    { .so = 't', .lo = "timeout", .i = GOLA_TIMEOUT },
+    { .so = 't', .lo = "timeout", .i = WAIT_GOLA_TIMEOUT },
   } ;
   tain tto = TAIN_INFINITE_RELATIVE ;
   int argc1 ;
   int hasblock = 1 ;
   int e ;
   uint64_t wgolb = 0 ;
-  char const *wgola[GOLA_N] = { 0 } ;
+  char const *wgola[WAIT_GOLA_N] = { 0 } ;
   unsigned int golc ;
   pid_t pid = -1 ;
   PROG = "wait" ;
-#ifdef EXECLINE_PEDANTIC_POSIX
-  setlocale(LC_ALL, "") ;  /* but of course, dear POSIX */
-#endif
   golc = GOL_main(argc, argv, rgolb, rgola, &wgolb, wgola) ;
   argc -= golc ; argv += golc ;
 
-  if (wgolb & GOLB_REAP) wgola[GOLA_TIMEOUT] = "0" ;
-  if (wgola[GOLA_TIMEOUT])
+  if (wgolb & WAIT_GOLB_REAP) wgola[WAIT_GOLA_TIMEOUT] = "0" ;
+  if (wgola[WAIT_GOLA_TIMEOUT])
   {
     unsigned int t = 0 ;
-    if (!uint0_scan(wgola[GOLA_TIMEOUT], &t)) dieusage() ;
+    if (!uint0_scan(wgola[WAIT_GOLA_TIMEOUT], &t)) dieusage() ;
     tain_from_millisecs(&tto, t) ;
   }
 
@@ -223,9 +216,9 @@ int main (int argc, char const **argv)
     }
     else pids[0] = 0 ;
 
-    e = wgola[GOLA_TIMEOUT] ?  /* wait -t30000 whatever */
-         wait_with_timeout(pids, n, &pid, argc1 ? &wait_one_from_list_nohang : &wait_one_nohang, &tto, !!(wgolb & GOLB_JUSTONE), !!(wgolb & GOLB_INSIST)) :
-         wgolb & GOLB_JUSTONE ?
+    e = wgola[WAIT_GOLA_TIMEOUT] ?  /* wait -t30000 whatever */
+         wait_with_timeout(pids, n, &pid, argc1 ? &wait_one_from_list_nohang : &wait_one_nohang, &tto, !!(wgolb & WAIT_GOLB_JUSTONE), !!(wgolb & WAIT_GOLB_INSIST)) :
+         wgolb & WAIT_GOLB_JUSTONE ?
            argc1 ?
              wait_one_from_list(pids, n, &pid) :  /* wait -o -- 2 3 4 / wait -o -- { 2 3 4 } */
              wait_one(&pid) :  /* wait -o / wait -o { } */
@@ -234,7 +227,7 @@ int main (int argc, char const **argv)
              wait_all() ; /* wait / wait { } */
   }
   if (!hasblock) _exit(e >= 0 ? e : 127) ;
-  if (!(wgolb & GOLB_JUSTONE)) xexec0(argv + argc1 + 1) ;
+  if (!(wgolb & WAIT_GOLB_JUSTONE)) xexec0(argv + argc1 + 1) ;
   if (e == -1) xmexec0_n(argv + argc1 + 1, "?\0!", 4, 2) ;
 
   {

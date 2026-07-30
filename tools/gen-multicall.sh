@@ -41,7 +41,7 @@ EOF
 for i in `ls -1 src/execline/deps-exe` ; do
   j=`echo $i | tr - _`
   echo
-  grep -v '^#include ' < src/execline/${i}.c | grep -vF '/* ISC license. */' | sed -e "s/int main (int argc, char \(.*\)\*argv.*$/int ${j}_main (int argc, char \1*argv, char const *const *envp)/"
+  grep -v '^#include ' < src/execline/${i}.c | grep -vF '/* ISC license. */' | sed -e "s/int main (int argc, char \(.*\)\*argv.*$/static int ${j}_main (int argc, char \1*argv, char const *const *envp)/"
   echo
   echo '#undef USAGE'
   echo '#undef dieusage'
@@ -52,27 +52,13 @@ cat <<EOF
 
 static int execline_main (int, char **, char const *const *) ;
 
-#ifdef EXECLINE_PEDANTIC_POSIX
-# define CD_FUNC posix_cd_main
-# define UMASK_FUNC posix_umask_main
-#else
-# define CD_FUNC execline_cd_main
-# define UMASK_FUNC execline_umask_main
-#endif
-
 static execline_app const execline_apps[] =
 {
 EOF
 
-for i in `{ echo cd ; echo execline ; echo umask ; ls -1 src/execline/deps-exe ; } | sort` ; do
+for i in `{ echo execline ; ls -1 src/execline/deps-exe ; } | sort` ; do
   j=`echo $i | tr - _`
-  if test $i = cd ; then
-    echo '  { .name = "cd", .mainf = (emain_func_ref)&CD_FUNC },'
-  elif test $i = umask ; then
-    echo '  { .name = "umask", .mainf = (emain_func_ref)&UMASK_FUNC },'
-  else
-    echo "  { .name = \"${i}\", .mainf = (emain_func_ref)&${j}_main },"
-  fi
+  echo "  { .name = \"${i}\", .mainf = (emain_func_ref)&${j}_main },"
 done
 
 cat <<EOF

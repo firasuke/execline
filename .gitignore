@@ -10,6 +10,7 @@
 /background
 /backtick
 /case
+/cd
 /define
 /dollarat
 /elgetopt
@@ -20,8 +21,6 @@
 /envfile
 /exec
 /execlineb
-/execline-cd
-/execline-umask
 /exit
 /export
 /export-array
@@ -49,8 +48,6 @@
 /multisubstitute
 /pipeline
 /piperw
-/posix-cd
-/posix-umask
 /redirfd
 /runblock
 /shift

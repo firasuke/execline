@@ -1,5 +1,16 @@
 Changelog for execline.
 
+In 2.10.0.0
+-----------
+
+ - --enable-pedantic-posix option removed.
+ - execline-cd is now cd.
+ - posix-umask is now umask.
+ - execline-umask and posix-cd removed.
+ - loopwhilex -n option removed.
+ - loopwhilex -x "" now loops forever.
+
+
 In 2.9.9.2
 ----------
 

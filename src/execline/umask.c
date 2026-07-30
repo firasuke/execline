@@ -2,24 +2,18 @@
 
 #include <stdint.h>
 #include <sys/stat.h>
-#include <locale.h>
 
 #include <skalibs/gccattributes.h>
 #include <skalibs/bytestr.h>
 #include <skalibs/types.h>
-#include <skalibs/sgetopt.h>
+#include <skalibs/envexec.h>
 #include <skalibs/buffer.h>
-#include <skalibs/strerr.h>
-#include <skalibs/exec.h>
 
-#define USAGE "posix-umask [ -S ] [ mask ] [ prog... ]"
+#define USAGE "umask [ -S ] [ mask ] [ prog... ]"
 #define dieusage() strerr_dieusage(100, USAGE)
 #define dieout() strerr_diefu1sys(111, "write to stdout")
 
-
- /* well, unlike posix-cd, at least this one was fun to write */
-
-static inline int pu_output (int sym)
+static inline int umask_output (int sym)
 {
   mode_t mode = umask(0) ;
   size_t m = 0 ;
@@ -43,10 +37,10 @@ static inline int pu_output (int sym)
   return 0 ;
 }
 
-static void pu_diesyntax (char const *) gccattr_noreturn ;
-static void pu_diesyntax (char const *s)
+static void umask_diesyntax (char const *) gccattr_noreturn ;
+static void umask_diesyntax (char const *s)
 {
-  strerr_dief3x(101, "internal parsing error: bad ", s, ". Please submit a bug-report.") ;
+  strerr_dief(101, "internal parsing error: bad ", s, ". Please submit a bug-report.") ;
 }
 
 static inline uint8_t pu_cclass (char c)
@@ -73,7 +67,7 @@ static inline uint8_t pu_cclass (char c)
   }
 }
 
-static inline uint8_t pu_who_value (char c)
+static inline uint8_t umask_who_value (char c)
 {
   switch (c)
   {
@@ -84,11 +78,11 @@ static inline uint8_t pu_who_value (char c)
     case '+' : /* shortcut for when who is empty */
     case '-' :
     case '=' : return 7 ;
-    default : pu_diesyntax("who") ;
+    default : umask_diesyntax("who") ;
   }
 }
 
-static inline uint8_t pu_perm_value (char c)
+static inline uint8_t umask_perm_value (char c)
 {
   switch (c)
   {
@@ -98,11 +92,11 @@ static inline uint8_t pu_perm_value (char c)
     case 'X' : return 1 ;
     case 's' :
     case 't' : return 0 ;
-    default : pu_diesyntax("perm") ;
+    default : umask_diesyntax("perm") ;
   }
 }
 
-static inline unsigned int pu_parsemode (char const *s)
+static inline unsigned int umask_parsemode (char const *s)
 {
   static uint16_t const table[5][7] =
   {
@@ -123,9 +117,9 @@ static inline unsigned int pu_parsemode (char const *s)
     char c = *s++ ;
     uint16_t what = table[state][pu_cclass(c)] ;
     state = what & 7 ;
-    if (what & 0x020) who |= pu_who_value(c) ;
+    if (what & 0x020) who |= umask_who_value(c) ;
     if (what & 0x080) perm = modes[byte_chr("ogu", 3, c)] ;
-    if (what & 0x100) perm |= pu_perm_value(c) ;
+    if (what & 0x100) perm |= umask_perm_value(c) ;
     if (what & 0x800)
     {
       unsigned int i = 3 ;
@@ -135,7 +129,7 @@ static inline unsigned int pu_parsemode (char const *s)
           case '-' : modes[i] &= ~perm ; break ;
           case '+' : modes[i] |= perm ; break ;
           case '=' : modes[i] = perm ; break ;
-          default : pu_diesyntax("op") ;
+          default : umask_diesyntax("op") ;
         }
     }
     if (what & 0x040) op = c ;
@@ -148,27 +142,17 @@ static inline unsigned int pu_parsemode (char const *s)
 
 int main (int argc, char const **argv)
 {
-  int sym = 0 ;
+  static gol_bool const rgolb = { .so = 'S', .lo = "symbolic", .clear = 0, .set = 0x01 } ;
+  uint64_t wgolb = 0 ;
   unsigned int mode ;
-  PROG = "posix-umask" ;
-  setlocale(LC_ALL, "") ;  /* totally supported, I swear */
+  PROG = "umask" ;
 
   {
-    subgetopt l = SUBGETOPT_ZERO ;
-    for (;;)
-    {
-      int opt = subgetopt_r(argc, argv, "S", &l) ;
-      if (opt == -1) break ;
-      switch (opt)
-      {
-        case 'S' : sym = 1 ; break ;
-        default : dieusage() ;
-      }
-    }
-    argc -= l.ind ; argv += l.ind ;
+    unsigned int golc = gol_main(argc, argv, &rgolb, 1, 0, 0, &wgolb, 0) ;
+    argc -= golc ; argv += golc ;
   }
-  if (!argc) return pu_output(sym) ;
-  if (!uint0_oscan(argv[0], &mode)) mode = ~pu_parsemode(argv[0]) ;
+  if (!argc) return umask_output(wgolb & 0x01) ;
+  if (!uint0_oscan(argv[0], &mode)) mode = ~umask_parsemode(argv[0]) ;
   umask(mode & 00777) ;
   xexec0(argv+1) ;
 }

@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+ <meta http-equiv="Content-Language" content="en" />
+ <title>execline: the cd command</title>
+ <meta name="Description" content="execline: the cd command" />
+ <meta name="Keywords" content="execline command cd chdir cd" />
+ <!-- <link rel="stylesheet" type="text/css" href="//skarnet.org/default.css" /> -->
+</head>
+<body>
+
+<p>
+<a href="index.html">execline</a><br />
+<a href="//skarnet.org/software/">Software</a><br />
+<a href="//skarnet.org/">skarnet.org</a>
+</p>
+
+<h1> The <tt>cd</tt> program </h1>
+
+<p>
+<tt>cd</tt> changes the current working directory to a
+given directory, then executes a program.
+</p>
+
+<h2> Interface </h2>
+
+<pre>
+     cd <em>dir</em> <em>prog...</em>
+</pre>
+
+<p>
+<tt>cd</tt> performs a
+<a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/chdir.html">chdir()</a>
+system call on <em>dir</em>, then execs into <em>prog...</em>.
+</p>
+
+<h2> Notes </h2>
+
+<ul>
+ <li> This <tt>cd</tt> program will never be invoked by a shell, unless its full path
+is explicitly given to the shell command line. So it is perfectly acceptable and valid
+to have a <tt>cd</tt> binary in the filesystem. No confusion will be possible: shells
+will invoke their builtin
+<a href="https://pubs.opengroup.org/onlinepubs/9799919799/utilities/cd.html">cd</a>
+utility, and execline scripts will invoke the <tt>cd</tt> binary. </li>
+ <li> Previous versions of POSIX also required a conformant <tt>cd</tt> binary to exist
+in the filesystem, for no reason at all. So, in previous execline versions,
+a <tt>posix-cd</tt> binary was present, and <tt>cd</tt> could be installed as a symlink
+to it when execline was configured with the <tt>--enable-pedantic-posix</tt> option.
+This allowed distributions to make execline binaries, including <tt>cd</tt>, available
+in PATH, while strictly conforming to POSIX. This requirement has now been relaxed by
+POSIX, so the needlessly complex <tt>posix-cd</tt> program was replaced with this
+simpler <tt>cd</tt>, that can now be made available in PATH without breaking strict
+conformance. </li>
+</ul>
+
+</body>
+</html>

@@ -51,7 +51,6 @@ Optional features:
   --enable-slashpackage[=ROOT]  assume /package installation at ROOT [disabled]
   --enable-absolute-paths       hardcode absolute BINDIR/foobar paths in binaries [disabled]
   --enable-nsss                 use the nsss library for user information [disabled]
-  --enable-pedantic-posix       use pedantically POSIX-compatible binaries [disabled]
   --enable-multicall            build a multicall binary [disabled]
 
 EOF
@@ -176,7 +175,6 @@ vpathd=''
 build=
 shebangisdefault=true
 usensss=false
-pposix=false
 multicall=false
 
 for arg ; do
@@ -220,8 +218,6 @@ for arg ; do
     --shebangdir=*) shebangisdefault=false ; shebangdir=${arg#*=} ;;
     --enable-nsss|--enable-nsss=yes) usensss=true ;;
     --disable-nsss|--enable-nsss=no) usensss=false ;;
-    --enable-pedantic-posix|--enable-pedantic-posix=yes) pposix=true ;;
-    --disable-pedantic-posix|--enable-pedantic-posix=no) pposix=false ;;
     --enable-multicall|--enable-multicall=yes) multicall=true ;;
     --disable-multicall|--enable-multicall=no) multicall=false ;;
     --enable-*|--disable-*|--with-*|--without-*|--*dir=*) ;;
@@ -543,11 +539,6 @@ else
   echo "LIBNSSS :="
   echo "MAYBEPTHREAD_LIB :="
 fi
-if $pposix ; then
-  echo "PEDANTIC_POSIX := 1"
-else
-  echo "PEDANTIC_POSIX :="
-fi
 if $multicall ; then
   echo "MULTICALL := 1"
 else
@@ -586,10 +577,6 @@ echo "#define ${package_macro_name}_LIBEXECPREFIX \"$libexecdir/\""
 echo "#define ${package_macro_name}_SYSCONFPREFIX \"$sysconfdir/\""
 echo "#define ${package_macro_name}_SHEBANGPREFIX \"$shebangdir/\""
 echo
-echo "#undef ${package_macro_name}_PEDANTIC_POSIX"
-if $pposix ; then
-echo "#define ${package_macro_name}_PEDANTIC_POSIX"
-fi
 echo
 echo "#endif"
 exec 1>&3 3>&-

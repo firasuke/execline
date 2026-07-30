@@ -26,7 +26,7 @@
 <h2> Interface </h2>
 
 <pre>
-     loopwhilex [ -n ] [ -o <em>okcodes</em> | -x <em>breakcodes</em> ] <em>prog...</em>
+     loopwhilex [ -o <em>okcodes</em> | -x <em>breakcodes</em> ] <em>prog...</em>
 </pre>
 
 <ul>
@@ -48,9 +48,11 @@ looping as long as <em>prog</em> exits with one of the codes in
  <li> <tt>-x</tt>&nbsp;<em>breakcodes</em>&nbsp;: like the previous
 option, but with inverted meaning - the listed exit codes are codes
 that will break the loop and exit, and the unlisted exit codes will keep
-the loop running. </li>
- <li> <tt>-n</tt>&nbsp;: negate the test. This option is now redundant,
-and may disappear soon. </li>
+the loop running. <tt>-x ""</tt> will make <tt>loopwhilex</tt> loop
+forever. </li>
+ <li> If both <tt>-o</tt> and <tt>-x</tt> options are given <tt>-o</tt>
+has priority and the list given by <tt>-x</tt> is ignored. If none of
+these options is given, <tt>-o 0</tt> is the default. </li>
 </ul>
 
 <h2> Notes </h2>

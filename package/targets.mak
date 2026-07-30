@@ -6,7 +6,7 @@ ifeq ($(MULTICALL),1)
 
 BIN_TARGETS := execline
 CONTENTS := $(notdir $(wildcard src/execline/deps-exe/*))
-BIN_SYMLINKS := cd umask $(CONTENTS)
+BIN_SYMLINKS := $(CONTENTS)
 EXTRA_TARGETS += src/multicall/execline.c
 
 define symlink_definition
@@ -22,14 +22,5 @@ src/multicall/execline.o: src/multicall/execline.c src/include/execline/config.h
 else
 
 BIN_TARGETS := $(notdir $(wildcard src/execline/deps-exe/*))
-BIN_SYMLINKS := cd umask
-
-ifeq ($(PEDANTIC_POSIX),1)
-SYMLINK_TARGET_cd := posix-cd
-SYMLINK_TARGET_umask := posix-umask
-else
-SYMLINK_TARGET_cd := execline-cd
-SYMLINK_TARGET_umask := execline-umask
-endif
 
 endif

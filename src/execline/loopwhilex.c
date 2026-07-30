@@ -1,73 +1,91 @@
 /* ISC license. */
 
+#include <stdint.h>
+#include <stdlib.h>
 #include <errno.h>
 
-#include <skalibs/sgetopt.h>
-#include <skalibs/strerr.h>
+#include <skalibs/gol.h>
+#include <skalibs/uint64.h>
 #include <skalibs/types.h>
+#include <skalibs/strerr.h>
 #include <skalibs/djbunix.h>
 
 #include <execline/execline.h>
 
-#define USAGE "loopwhilex [ -n ] [ -o okcode,okcode,... | -x exitcode,exitcode,... ] prog..."
+#define USAGE "loopwhilex [ -o okcode,okcode,... | -x exitcode,exitcode,... ] prog..."
 #define dieusage() strerr_dieusage(100, USAGE)
 
-static int lw_isok (unsigned short *tab, unsigned int n, int code)
+enum lw_gola_e
 {
-  unsigned int i = 0 ;
-  for (; i < n ; i++) if ((unsigned short)code == tab[i]) break ;
-  return i < n ;
+  LW_GOLA_OK,
+  LW_GOLA_EXCLUDE,
+  LW_GOLA_N
+} ;
+
+static int lw_uint8_cmp (void const *a, void const *b)
+{
+  uint8_t aa = *(uint8_t const *)a ;
+  uint8_t bb = *(uint8_t const *)b ;
+  return aa < bb ? -1 : aa > bb ;
+}
+
+static size_t lw_scanlist (char const *s, uint8_t *tab)
+{
+  size_t n = 0 ;
+  while (*s)
+  {
+    uint64_t u ;
+    size_t l = uint64_scan(s, &u) ;
+    if (!l) break ;
+    if (u > 256 || n >= 255) dieusage() ;
+    tab[n++] = u ;
+    s += l ;
+    while (*s == ',') s++ ;
+  }
+  if (*s) dieusage() ;
+  qsort(tab, n, 1, &lw_uint8_cmp) ;
+  return n ;
 }
 
 int main (int argc, char const *const *argv, char const *const *envp)
 {
-  int wstat ;
-  int not = 0, cont = 1, rev = 0 ;
-  unsigned short okcodes[256] ;
-  size_t nbc = 0 ;
-  PROG = "loopwhilex" ;
+  static gol_arg const rgola[] =
   {
-    subgetopt l = SUBGETOPT_ZERO ;
-    for (;;)
-    {
-      int opt = subgetopt_r(argc, argv, "no:x:", &l) ;
-      if (opt == -1) break ;
-      switch (opt)
-      {
-        case 'n' : not = 1 ; break ;
-        case 'o' :
-          rev = 0 ;
-          if (!ushort_scanlist(okcodes, 256, l.arg, &nbc)) dieusage() ;
-          break ;
-        case 'x' :
-          rev = 1 ;
-          if (!ushort_scanlist(okcodes, 256, l.arg, &nbc)) dieusage() ;
-          break ;
-        default : dieusage() ;
-      }
-    }
-    argc -= l.ind ; argv += l.ind ;
+    { .so = 'o', .lo = "ok-codes", .i = LW_GOLA_OK },
+    { .so = 'x', .lo = "exclude-codes", .i = LW_GOLA_EXCLUDE },
+  } ;
+  int rev = 0 ;
+  char const *wgola[LW_GOLA_N] = { 0 } ;
+  size_t n = 0 ;
+  uint8_t codes[256] = { 0 } ;
+  PROG = "loopwhilex" ;
+
+  {
+    unsigned int golc = gol_main(argc, argv, 0, 0, rgola, sizeof(rgola)/sizeof(gol_arg), 0, wgola) ;
+    argc -= golc ; argv += golc ;
   }
   if (!argc) dieusage() ;
-
-  if (!nbc)
+  if (wgola[LW_GOLA_OK]) n = lw_scanlist(wgola[LW_GOLA_OK], codes) ;
+  else if (wgola[LW_GOLA_EXCLUDE])
   {
-    okcodes[0] = 0 ;
-    nbc = 1 ;
+    n = lw_scanlist(wgola[LW_GOLA_EXCLUDE], codes) ;
+    rev = 1 ;
   }
-  else if (rev) not = !not ;
+  else n = 1 ;
 
-  while (cont)
+  for (;;)
   {
+    int wstat ;
     pid_t pid = el_spawn0(argv[0], argv, envp) ;
     if (!pid)
     {
       if (errno == ENOENT && argv[0][0] == ' ')
-        strerr_diefu3x(111, "spawn ", argv[0], ": name begins with a space, are you trying to spawn a block as your loop body?") ;
-      else strerr_diefu2sys(111, "spawn ", argv[0]) ;
+        strerr_dief(111, "spawn ", argv[0], ": name begins with a space, are you trying to spawn a block as your loop body?") ;
+      else strerr_diefusys(111, "spawn ", argv[0]) ;
     }
-    if (wait_pid(pid, &wstat) < 0) strerr_diefu1sys(111, "wait_pid") ;
-    cont = not != lw_isok(okcodes, nbc, wait_estatus(wstat)) ;
+    if (wait_pid(pid, &wstat) < 0) strerr_diefusys(111, "wait_pid") ;
+    codes[255] = wait_estatus(wstat) ;
+    if (rev != !bsearch(codes + 255, codes, n, 1, &lw_uint8_cmp)) break ;
   }
-  return wait_estatus(wstat) ;
+  return codes[255] ;
 }

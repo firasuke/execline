@@ -12,7 +12,7 @@
 
 #include <execline/execline.h>
 
-#define USAGE "loopwhilex [ -o okcode,okcode,... | -x exitcode,exitcode,... ] prog..."
+#define USAGE "loopwhilex [ -o code,code,... | -x code,code,... ] prog..."
 #define dieusage() strerr_dieusage(100, USAGE)
 
 enum lw_gola_e
@@ -37,7 +37,8 @@ static size_t lw_scanlist (char const *s, uint8_t *tab)
     uint64_t u ;
     size_t l = uint64_scan(s, &u) ;
     if (!l) break ;
-    if (u > 256 || n >= 255) dieusage() ;
+    if (u > 256) strerr_dief(100, "exit codes must be 0 to 255") ;
+    if (n >= 255) strerr_dief(100, "too many exit codes") ;
     tab[n++] = u ;
     s += l ;
     while (*s == ',') s++ ;
